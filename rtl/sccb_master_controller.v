@@ -49,8 +49,8 @@ module sccb_master_controller #(
     output                                  m_rlast_o,
     output                                  m_rvalid_o,
     // -- SCCB Master Interface
-    output                                  sccb_sio_c,
-    inout                                   sccb_sio_d
+    output                                  sio_c,
+    inout                                   sio_d
 );
 
 
