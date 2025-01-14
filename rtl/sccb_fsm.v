@@ -45,7 +45,6 @@ module sccb_fsm #(
     localparam RX_DATA_ST       = 3'd4;
     localparam RX_DATA_ACK_ST   = 3'd5;
     localparam STOP_TRANS_ST    = 3'd6;
-    localparam BUF_RX_DATA_ST   = 3'd7;
 
     localparam DATA_CNT_W       = $clog2(DATA_W);
     // Internal signals declaration
@@ -61,6 +60,7 @@ module sccb_fsm #(
     reg                     sio_c_d;
     reg     [DATA_CNT_W-1:0]sio_d_cnt_d;
     reg     [DATA_W-1:0]    rx_data_d;
+    reg                     rx_wr_ptr_d;
     // -- reg
     reg     [2:0]           st_q;
     reg     [DATA_W-1:0]    tx_data_q1;
@@ -73,6 +73,8 @@ module sccb_fsm #(
     reg                     sio_c_q;   // Internal SIO_D
     reg     [DATA_CNT_W-1:0]sio_d_cnt_q;
     reg     [DATA_W-1:0]    rx_data_q;
+    reg                     rx_wr_ptr_q;
+    reg                     rx_rd_ptr_q;
 
     // Combinational logic
     assign sio_d = sio_oe_m_q ? 1'bz : sio_d_intl_q;
@@ -81,6 +83,7 @@ module sccb_fsm #(
     assign tx_sub_adr_rdy_o = tx_sub_adr_rdy;
     assign tx_data_rdy_o = tx_data_rdy;
     assign rx_data_o = rx_data_q;
+    assign rx_vld_o = rx_rd_ptr_q ^ rx_wr_ptr_q;    // Assert when rx data is received completely -> Deassert when data is read or new data is received (overwriting the unreceived data)
     assign slv_dvc_addr = {slv_dvc_addr_i, ~trans_type_q1}; // Slave device address + R/W bit
     assign cntr_en_o = |(st_q ^ IDLE_ST);  // start counting when the state is not IDLE
     always @(*) begin
@@ -111,6 +114,7 @@ module sccb_fsm #(
         phase_cnt_d = phase_cnt_q;
         sio_d_cnt_d = sio_d_cnt_q;
         rx_data_d   = rx_data_q;
+        rx_wr_ptr_d = rx_wr_ptr_q;
         case (st_q)
             IDLE_ST: begin
                 if (ctrl_vld_i & ctrl_rdy_o) begin
@@ -160,6 +164,7 @@ module sccb_fsm #(
                         st_d = RX_DATA_ST;
                         sio_oe_m_d = 1'b0;      // Float SIO_D
                         sio_d_intl_d = 1'b1;
+                        rx_wr_ptr_d = rx_rd_ptr_q;     // Force deassert write valid to avoid overwriting the current data with dummy data
                     end
                     else begin    // Write transmission
                         if(~|(phase_cnt_q^(phase_amt_q1-1'b1))) begin    // Last phase
@@ -178,6 +183,7 @@ module sccb_fsm #(
                         sio_oe_m_d = 1'b0;  // Drive the SIO_D pin
                         // Internal
                         sio_d_intl_d = 1'b1;
+                        rx_wr_ptr_d = ~rx_rd_ptr_q; // Assert write valid
                     end
                     sio_d_cnt_d = sio_d_cnt_q - 1'b1;   // 7 -> 0
                 end
@@ -191,6 +197,7 @@ module sccb_fsm #(
                     // Setup SCCB stop transmission
                     sio_d_intl_d = 1'b0;
                 end
+                // TODO: Push data to FIFO
             end
             STOP_TRANS_ST: begin
                 if(tick_en_i) begin
@@ -240,5 +247,64 @@ module sccb_fsm #(
         else if(sio_c_tgl_en_i) begin
             sio_c_q <= (~|(st_q^START_TRANS_ST) | ~|(st_q^START_TRANS_ST)) | (~sio_c_q); // When current state is START transmission or STOP transmission, then SIO_C is HIGH. Otherwise, toggle SIO_C
         end
+    end
+    always @(posedge clk or negedge rst_n) begin
+        if(~rst_n) begin
+            rx_wr_ptr_q <= 1'b0;
+        end
+        else begin
+            rx_wr_ptr_q <= rx_wr_ptr_d;
+        end
+    end
+    always @(posedge clk or negedge rst_n) begin
+        if(~rst_n) begin
+            rx_rd_ptr_q <= 1'b0;
+        end
+        else if (rx_vld_o & rx_rdy_i) begin // Hanshake occurs -> Move read pointer -> Deassert rx_vld_o
+            rx_rd_ptr_q <= rx_wr_ptr_q;
+        end
+    end
+    always @(posedge clk or negedge rst_n) begin
+        if(~rst_n) begin
+            phase_cnt_q <= 2'd0;
+        end
+        else begin
+            phase_cnt_q <= phase_cnt_d;
+        end
+    end
+    always @(posedge clk or negedge rst_n) begin
+        if(~rst_n) begin
+            sio_oe_m_q <= 1'b1;
+        end
+        else begin
+            sio_oe_m_q <= sio_oe_m_d;
+        end
+    end
+    always @(posedge clk or negedge rst_n) begin
+        if(~rst_n) begin
+            sio_d_intl_q <= 1'b1;
+        end
+        else begin
+            sio_d_intl_q <= sio_d_intl_d;
+        end
+    end
+    always @(posedge clk or negedge rst_n) begin
+        if(~rst_n) begin
+            sio_c_q <= 1'b1;
+        end
+        else begin
+            sio_c_q <= sio_c_d;
+        end
+    end
+    always @(posedge clk or negedge rst_n) begin
+        if(~rst_n) begin
+            sio_d_cnt_q <= {DATA_CNT_W{1'b0}};
+        end
+        else begin
+            sio_d_cnt_q <= sio_d_cnt_d;
+        end
+    end
+    always @(posedge clk) begin
+        rx_data_q <= rx_data_d;
     end
 endmodule

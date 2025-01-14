@@ -5,7 +5,9 @@ The minimum of SIO_C cycle is 10us -> maximum frequency is 100kHz -> maximum tog
 */
 module sccb_timing_gen #(
     parameter INTERNAL_CLK_FREQ = 125_000_000,
-    parameter MAX_SCCB_FREQ     = 100_000
+    parameter MAX_SCCB_FREQ     = 100_000,
+    // Configuarion Bus 
+    parameter DATA_W            = 8
 ) (
     // Input declaration
     input                   clk,
@@ -13,6 +15,8 @@ module sccb_timing_gen #(
     // -- SCCB FSM
     input                   cntr_en_i,
     // -- Configuration registers
+    // TODO: Add configuration registers
+    input [DATA_W-1:0]      prescaler_i,
 
     // Output declaration
     // -- SCCB FSM 
@@ -21,7 +25,7 @@ module sccb_timing_gen #(
 );
 
     // Local parameters declaration
-    localparam SIOC_HCYC_CNT    = INTERNAL_CLK / (MAX_SCCB_FREQ*2); // SIO_C half cycle counter
+    localparam SIOC_HCYC_CNT    = INTERNAL_CLK_FREQ / (MAX_SCCB_FREQ*2); // SIO_C half cycle counter
     localparam SIOC_HCYC_CNT_W  = $clog2(SIOC_HCYC_CNT);
 
     // Internal signals declaration
