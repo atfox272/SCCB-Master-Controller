@@ -97,21 +97,21 @@ module sccb_master_controller #(
 
     // MEMORY MAPPING
     // -- BASE: 0x2000_0000 - OFFSET: 0-1
-    assign slv_dvc_addr     = conf_reg   [8'd00];
-    assign prescaler        = conf_reg   [8'd01];
+    assign slv_dvc_addr         = conf_reg   [8'd00];
+    assign prescaler            = conf_reg   [8'd01];
     // -- BASE: 0x2100_0000 - OFFSET: 0
-    assign phase_amt        = tx_fifo_dat[8'd00][1:0];
-    assign trans_type       = tx_fifo_dat[8'd00][2];
-    assign ctrl_vld         = tx_fifo_vld[8'd00];
-    assign ctrl_rdy         = tx_fifo_rdy[8'd00];
+    assign phase_amt            = tx_fifo_dat[8'd00][1:0];
+    assign trans_type           = tx_fifo_dat[8'd00][2];
+    assign ctrl_vld             = tx_fifo_vld[8'd00];
+    assign tx_fifo_rdy[8'd00]   = ctrl_rdy;
     // -- BASE: 0x2100_0000 - OFFSET: 1
-    assign tx_data          = tx_fifo_dat[8'd01];
-    assign tx_data_vld      = tx_fifo_vld[8'd01];
-    assign tx_data_rdy      = tx_fifo_rdy[8'd01];
+    assign tx_sub_adr           = tx_fifo_dat[8'd01];
+    assign tx_sub_adr_vld       = tx_fifo_vld[8'd01];
+    assign tx_fifo_rdy[8'd01]   = tx_sub_adr_rdy;
     // -- BASE: 0x2100_0000 - OFFSET: 2
-    assign tx_sub_adr       = tx_fifo_dat[8'd02];
-    assign tx_sub_adr_vld   = tx_fifo_vld[8'd02];
-    assign tx_sub_adr_rdy   = tx_fifo_rdy[8'd02];
+    assign tx_data              = tx_fifo_dat[8'd02];
+    assign tx_data_vld          = tx_fifo_vld[8'd02];
+    assign tx_fifo_rdy[8'd02]   = tx_data_rdy;
 
     // De-flattern
 generate
@@ -125,97 +125,97 @@ endgenerate
 
     // Module instances
     axi4_ctrl #(
-        .AXI4_CTRL_CONF(1),     // CONF_REG: On
-        .AXI4_CTRL_WR_ST(1),    // TX_FIFO: On
-        .AXI4_CTRL_RD_ST(1),    // RX_FIFO: On
-        .CONF_BASE_ADDR(IP_CONF_BASE_ADDR),
-        .CONF_OFFSET(32'h01),
-        .CONF_REG_NUM(CONFIG_REG_NUM),
-        .ST_WR_BASE_ADDR(IP_TX_BASE_ADDR),
-        .ST_WR_OFFSET(32'h01),
-        .ST_WR_FIFO_NUM(SCCB_TX_FIFO_NUM),
-        .ST_WR_FIFO_DEPTH(SCCB_TX_FIFO_DEPTH),
-        .ST_RD_BASE_ADDR(IP_RX_BASE_ADDR),
-        .ST_RD_OFFSET(32'h01),
-        .ST_RD_FIFO_NUM(SCCB_RX_FIFO_NUM),
-        .ST_RD_FIFO_DEPTH(SCCB_RX_FIFO_DEPTH),
+        .AXI4_CTRL_CONF     (1),    // CONF_REG: On
+        .AXI4_CTRL_WR_ST    (1),    // TX_FIFO: On
+        .AXI4_CTRL_RD_ST    (1),    // RX_FIFO: On
+        .CONF_BASE_ADDR     (IP_CONF_BASE_ADDR),
+        .CONF_OFFSET        (32'h01),
+        .CONF_REG_NUM       (CONFIG_REG_NUM),
+        .ST_WR_BASE_ADDR    (IP_TX_BASE_ADDR),
+        .ST_WR_OFFSET       (32'h01),
+        .ST_WR_FIFO_NUM     (SCCB_TX_FIFO_NUM),
+        .ST_WR_FIFO_DEPTH   (SCCB_TX_FIFO_DEPTH),
+        .ST_RD_BASE_ADDR    (IP_RX_BASE_ADDR),
+        .ST_RD_OFFSET       (32'h01),
+        .ST_RD_FIFO_NUM     (SCCB_RX_FIFO_NUM),
+        .ST_RD_FIFO_DEPTH   (SCCB_RX_FIFO_DEPTH),
 
-        .DATA_W(DATA_W),
-        .ADDR_W(ADDR_W),
-        .MST_ID_W(MST_ID_W),
-        .TRANS_DATA_LEN_W(TRANS_DATA_LEN_W),
-        .TRANS_DATA_SIZE_W(TRANS_DATA_SIZE_W),
-        .TRANS_RESP_W(TRANS_RESP_W)
+        .DATA_W             (DATA_W),
+        .ADDR_W             (ADDR_W),
+        .MST_ID_W           (MST_ID_W),
+        .TRANS_DATA_LEN_W   (TRANS_DATA_LEN_W),
+        .TRANS_DATA_SIZE_W  (TRANS_DATA_SIZE_W),
+        .TRANS_RESP_W       (TRANS_RESP_W)
     ) axi4_ctrl (
-        .clk            (clk),
-        .rst_n          (rst_n),
-        .m_awid_i       (m_awid_i),
-        .m_awaddr_i     (m_awaddr_i),
-        .m_awlen_i      (m_awlen_i),
-        .m_awvalid_i    (m_awvalid_i),
-        .m_wdata_i      (m_wdata_i),
-        .m_wlast_i      (m_wlast_i),
-        .m_wvalid_i     (m_wvalid_i),
-        .m_bready_i     (m_bready_i),
-        .m_arid_i       (m_arid_i),
-        .m_araddr_i     (m_araddr_i),
-        .m_arlen_i      (m_arlen_i),
-        .m_arvalid_i    (m_arvalid_i),
-        .m_rready_i     (m_rready_i),
-        .wr_st_rd_vld_i (tx_fifo_vld),
-        .rd_st_wr_data_i(rx_data),
-        .rd_st_wr_vld_i (rx_data_vld),
-        .m_awready_o    (m_awready_o),
-        .m_wready_o     (m_wready_o),
-        .m_bid_o        (m_bid_o),
-        .m_bresp_o      (m_bresp_o),
-        .m_bvalid_o     (m_bvalid_o),
-        .m_arready_o    (m_arready_o),
-        .m_rdata_o      (m_rdata_o),
-        .m_rresp_o      (m_rresp_o),
-        .m_rlast_o      (m_rlast_o),
-        .m_rvalid_o     (m_rvalid_o),
-        .conf_reg_o     (conf_reg_flat),
-        .wr_st_rd_data_o(tx_fifo_flat),
-        .wr_st_rd_rdy_o (tx_fifo_rdy),
-        .rd_st_wr_rdy_o (rx_data_rdy)
+        .clk                (clk),
+        .rst_n              (rst_n),
+        .m_awid_i           (m_awid_i),
+        .m_awaddr_i         (m_awaddr_i),
+        .m_awlen_i          (m_awlen_i),
+        .m_awvalid_i        (m_awvalid_i),
+        .m_wdata_i          (m_wdata_i),
+        .m_wlast_i          (m_wlast_i),
+        .m_wvalid_i         (m_wvalid_i),
+        .m_bready_i         (m_bready_i),
+        .m_arid_i           (m_arid_i),
+        .m_araddr_i         (m_araddr_i),
+        .m_arlen_i          (m_arlen_i),
+        .m_arvalid_i        (m_arvalid_i),
+        .m_rready_i         (m_rready_i),
+        .wr_st_rd_vld_i     (tx_fifo_rdy),
+        .rd_st_wr_data_i    (rx_data),
+        .rd_st_wr_vld_i     (rx_vld),
+        .m_awready_o        (m_awready_o),
+        .m_wready_o         (m_wready_o),
+        .m_bid_o            (m_bid_o),
+        .m_bresp_o          (m_bresp_o),
+        .m_bvalid_o         (m_bvalid_o),
+        .m_arready_o        (m_arready_o),
+        .m_rdata_o          (m_rdata_o),
+        .m_rresp_o          (m_rresp_o),
+        .m_rlast_o          (m_rlast_o),
+        .m_rvalid_o         (m_rvalid_o),
+        .conf_reg_o         (conf_reg_flat),
+        .wr_st_rd_data_o    (tx_fifo_flat),
+        .wr_st_rd_rdy_o     (tx_fifo_vld),
+        .rd_st_wr_rdy_o     (rx_rdy)
     );
 
     sccb_timing_gen #(
-        .INTERNAL_CLK_FREQ(INTERNAL_CLK_FREQ),
-        .MAX_SCCB_FREQ(MAX_SCCB_FREQ)
+        .INTERNAL_CLK_FREQ  (INTERNAL_CLK_FREQ),
+        .MAX_SCCB_FREQ      (MAX_SCCB_FREQ)
     ) sccb_timing_gen (
-        .clk           (clk),
-        .rst_n         (rst_n),
-        .cntr_en_i     (cntr_en),
-        .prescaler_i   (prescaler),
-        .tick_en_o     (tick_en),
-        .sio_c_tgl_en_o(sio_c_tgl_en)
+        .clk                (clk),
+        .rst_n              (rst_n),
+        .cntr_en_i          (cntr_en),
+        .prescaler_i        (prescaler),
+        .tick_en_o          (tick_en),
+        .sio_c_tgl_en_o     (sio_c_tgl_en)
     );
 
     sccb_fsm #(
-        .DATA_W(DATA_W)
+        .DATA_W             (DATA_W)
     ) sccb_fsm (
-        .clk             (clk),
-        .rst_n           (rst_n),
-        .slv_dvc_addr_i  (slv_dvc_addr),
-        .trans_type_i    (trans_type),
-        .phase_amt_i     (phase_amt),
-        .ctrl_vld_i      (ctrl_vld),
-        .tx_data_i       (tx_data),
-        .tx_data_vld_i   (tx_data_vld),
-        .tx_sub_adr_i    (tx_sub_adr),
-        .tx_sub_adr_vld_i(tx_sub_adr_vld),
-        .rx_rdy_i        (rx_data_rdy),
-        .tick_en_i       (tick_en),
-        .sio_c_tgl_en_i  (sio_c_tgl_en),
-        .ctrl_rdy_o      (ctrl_rdy),
-        .tx_data_rdy_o   (tx_data_rdy),
-        .tx_sub_adr_rdy_o(tx_sub_adr_rdy),
-        .rx_data_o       (rx_data),
-        .rx_vld_o        (rx_data_vld),
-        .cntr_en_o       (cntr_en),
-        .sio_c           (sio_c),
-        .sio_d           (sio_d)
+        .clk                (clk),
+        .rst_n              (rst_n),
+        .slv_dvc_addr_i     (slv_dvc_addr),
+        .trans_type_i       (trans_type),
+        .phase_amt_i        (phase_amt),
+        .ctrl_vld_i         (ctrl_vld),
+        .tx_data_i          (tx_data),
+        .tx_data_vld_i      (tx_data_vld),
+        .tx_sub_adr_i       (tx_sub_adr),
+        .tx_sub_adr_vld_i   (tx_sub_adr_vld),
+        .rx_rdy_i           (rx_rdy),
+        .tick_en_i          (tick_en),
+        .sio_c_tgl_en_i     (sio_c_tgl_en),
+        .ctrl_rdy_o         (ctrl_rdy),
+        .tx_data_rdy_o      (tx_data_rdy),
+        .tx_sub_adr_rdy_o   (tx_sub_adr_rdy),
+        .rx_data_o          (rx_data),
+        .rx_vld_o           (rx_vld),
+        .cntr_en_o          (cntr_en),
+        .sio_c              (sio_c),
+        .sio_d              (sio_d)
     );
 endmodule

@@ -1,0 +1,1 @@
+./../tb/sccb_master_controller_tb.sv

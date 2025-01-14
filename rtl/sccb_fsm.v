@@ -57,8 +57,8 @@ module sccb_fsm #(
     reg     [1:0]           phase_cnt_d;
     reg                     sio_oe_m_d;
     reg                     sio_d_intl_d;
-    reg                     sio_c_d;
-    reg     [DATA_CNT_W-1:0]sio_d_cnt_d;
+    reg                     sio_d_data_map;
+    reg     [DATA_CNT_W:0]  sio_d_cnt_d;
     reg     [DATA_W-1:0]    rx_data_d;
     reg                     rx_wr_ptr_d;
     // -- reg
@@ -71,7 +71,7 @@ module sccb_fsm #(
     reg                     sio_oe_m_q;     // SIO_D output enable (tri-state control)
     reg                     sio_d_intl_q;   // Internal SIO_D
     reg                     sio_c_q;   // Internal SIO_D
-    reg     [DATA_CNT_W-1:0]sio_d_cnt_q;
+    reg     [DATA_CNT_W:0]  sio_d_cnt_q;
     reg     [DATA_W-1:0]    rx_data_q;
     reg                     rx_wr_ptr_q;
     reg                     rx_rd_ptr_q;
@@ -106,11 +106,23 @@ module sccb_fsm #(
             end
         endcase
     end
+    // -- A common engine to reduce logic gates
+    always @(*) begin
+        sio_d_data_map = tx_data_q1[sio_d_cnt_q];
+        case(phase_cnt_q)
+            2'd0: begin  // The current phase is slave device address phase (phase 1)
+                sio_d_data_map = slv_dvc_addr[sio_d_cnt_q[DATA_CNT_W-1:0]];
+            end
+            2'd1: begin // The current phase is sub-address phase (phase 2)
+                sio_d_data_map = tx_sub_adr_q1[sio_d_cnt_q[DATA_CNT_W-1:0]];
+            end
+            // Default (on the top of the alwasy block): The current phase is data phase (phase 3)
+        endcase
+    end
     always @(*) begin
         st_d        = st_q;
         sio_oe_m_d  = sio_oe_m_q;
         sio_d_intl_d= sio_d_intl_q;
-        sio_c_d     = sio_c_q;
         phase_cnt_d = phase_cnt_q;
         sio_d_cnt_d = sio_d_cnt_q;
         rx_data_d   = rx_data_q;
@@ -131,53 +143,52 @@ module sccb_fsm #(
                     if(sio_d_intl_d) begin  // Start transmission
                         st_d = TX_DATA_ST;
                         sio_d_intl_d = 1'b0;
-                        sio_d_cnt_q = DATA_W - 1'b1; // 3'd7
+                        sio_d_cnt_d = DATA_W - 1'b1; // 4'd7
                     end
                 end
             end
             TX_DATA_ST: begin
                 if(tick_en_i & (~sio_c_q)) begin    // Active on LOW level of SIO_C
-                    if(~|sio_d_cnt_q) begin // == 0
+                    if(&sio_d_cnt_q) begin // == 0xF
                         st_d = TX_DATA_ACK_ST;
                         // I/O
                         sio_oe_m_d = 1'b1;  // Float SIO_D
-                        // Internal
-                        phase_cnt_d = phase_cnt_q + 1'b1;
                     end
                     else begin
-                        if(~|(phase_cnt_q^2'd0)) begin  // The current phase is slave device address phase (phase 1)
-                            sio_d_intl_d = slv_dvc_addr[sio_d_cnt_q];
-                        end
-                        else if(~|(phase_cnt_q^2'd1)) begin // The current phase is sub-address phase (phase 2)
-                            sio_d_intl_d = tx_sub_adr_q1[sio_d_cnt_q];
-                        end
-                        else begin  // The current phase is data phase (phase 3)
-                            sio_d_intl_d = tx_data_q1[sio_d_cnt_q];
-                        end
+                        sio_d_intl_d = sio_d_data_map;
                     end
-                    sio_d_cnt_d = sio_d_cnt_q - 1'b1;   // 7 -> 0
+                    sio_d_cnt_d = sio_d_cnt_q - 1'b1;   // 0x7 -> 0x0 -> 0xF (overflow)
                 end
             end
             TX_DATA_ACK_ST: begin
                 if(tick_en_i & (~sio_c_q)) begin    // Active on LOW level of SIO_C
                     if(~trans_type_q1) begin    // Read transmission
                         st_d = RX_DATA_ST;
-                        sio_oe_m_d = 1'b0;      // Float SIO_D
-                        sio_d_intl_d = 1'b1;
-                        rx_wr_ptr_d = rx_rd_ptr_q;     // Force deassert write valid to avoid overwriting the current data with dummy data
+                        sio_d_cnt_d = DATA_W - 2'd2;    // Reset counter 
+                        rx_wr_ptr_d = rx_rd_ptr_q;      // Force deassert write valid to avoid overwriting the current data with dummy data
                     end
                     else begin    // Write transmission
                         if(~|(phase_cnt_q^(phase_amt_q1-1'b1))) begin    // Last phase
                             st_d = STOP_TRANS_ST;
                             // Setup SCCB stop transmission
                             sio_d_intl_d = 1'b0;
+                            sio_oe_m_d = 1'b0; // Control SIO_D
+                        end
+                        else begin                                      // Remain some phases
+                            st_d = TX_DATA_ST;
+                            // Setup
+                            sio_oe_m_d = 1'b0;      // Control SIO_D
+                            sio_d_intl_d = sio_d_data_map;  // Map new SIO_D = TX_DAT[7]
+                            sio_d_cnt_d = DATA_W - 2'd2;    // Reset counter
                         end
                     end
+                    // Internal
+                    phase_cnt_d = phase_cnt_q + 1'b1;
                 end
             end
             RX_DATA_ST: begin
                 if(tick_en_i & (~sio_c_q)) begin    // Active on LOW level of SIO_C
-                    if(~|sio_d_cnt_q) begin // == 0
+                    if(&sio_d_cnt_q) begin // == 0xF
                         st_d = RX_DATA_ACK_ST;
                         // I/O
                         sio_oe_m_d = 1'b0;  // Drive the SIO_D pin
@@ -185,7 +196,7 @@ module sccb_fsm #(
                         sio_d_intl_d = 1'b1;
                         rx_wr_ptr_d = ~rx_rd_ptr_q; // Assert write valid
                     end
-                    sio_d_cnt_d = sio_d_cnt_q - 1'b1;   // 7 -> 0
+                    sio_d_cnt_d = sio_d_cnt_q - 1'b1;   // 0x7 -> 0x0 -> 0xF
                 end
                 if(sio_c_tgl_en_i & (~sio_c_q)) begin   // Sample SIO_D on rising edge of SIO_C
                     rx_data_d = {rx_data_q[DATA_W-2:0], sio_d};
@@ -197,7 +208,6 @@ module sccb_fsm #(
                     // Setup SCCB stop transmission
                     sio_d_intl_d = 1'b0;
                 end
-                // TODO: Push data to FIFO
             end
             STOP_TRANS_ST: begin
                 if(tick_en_i) begin
@@ -235,8 +245,11 @@ module sccb_fsm #(
             trans_type_q1 <= trans_type_i;
         end
     end
-    always @(posedge clk) begin
-        if(st_d != st_q) begin
+    always @(posedge clk or negedge rst_n) begin
+        if(~rst_n) begin
+            st_q <= IDLE_ST;
+        end
+        else if(st_d != st_q) begin
             st_q <= st_d;
         end
     end
@@ -245,7 +258,7 @@ module sccb_fsm #(
             sio_c_q <= 1'b1;
         end
         else if(sio_c_tgl_en_i) begin
-            sio_c_q <= (~|(st_q^START_TRANS_ST) | ~|(st_q^START_TRANS_ST)) | (~sio_c_q); // When current state is START transmission or STOP transmission, then SIO_C is HIGH. Otherwise, toggle SIO_C
+            sio_c_q <= (~|(st_q^START_TRANS_ST) | ~|(st_q^STOP_TRANS_ST)) | (~sio_c_q); // When current state is START transmission or STOP transmission, then SIO_C is HIGH. Otherwise, toggle SIO_C
         end
     end
     always @(posedge clk or negedge rst_n) begin
@@ -288,21 +301,8 @@ module sccb_fsm #(
             sio_d_intl_q <= sio_d_intl_d;
         end
     end
-    always @(posedge clk or negedge rst_n) begin
-        if(~rst_n) begin
-            sio_c_q <= 1'b1;
-        end
-        else begin
-            sio_c_q <= sio_c_d;
-        end
-    end
-    always @(posedge clk or negedge rst_n) begin
-        if(~rst_n) begin
-            sio_d_cnt_q <= {DATA_CNT_W{1'b0}};
-        end
-        else begin
-            sio_d_cnt_q <= sio_d_cnt_d;
-        end
+    always @(posedge clk) begin
+        sio_d_cnt_q <= sio_d_cnt_d;
     end
     always @(posedge clk) begin
         rx_data_q <= rx_data_d;
