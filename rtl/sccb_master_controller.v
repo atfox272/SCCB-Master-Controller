@@ -19,46 +19,46 @@ module sccb_master_controller #(
 ) (
     // Input declaration
     // -- Global 
-    input                                   clk,
-    input                                   rst_n,
+    input                           clk,
+    input                           rst_n,
     // -- AXI4 Interface            
     // -- -- AW channel         
-    input   [MST_ID_W-1:0]                  m_awid_i,
-    input   [ADDR_W-1:0]                    m_awaddr_i,
-    input   [TRANS_DATA_LEN_W-1:0]          m_awlen_i,
-    input                                   m_awvalid_i,
+    input   [MST_ID_W-1:0]          m_awid_i,
+    input   [ADDR_W-1:0]            m_awaddr_i,
+    input   [TRANS_DATA_LEN_W-1:0]  m_awlen_i,
+    input                           m_awvalid_i,
     // -- -- W channel          
-    input   [DATA_W-1:0]                    m_wdata_i,
-    input                                   m_wlast_i,
-    input                                   m_wvalid_i,
+    input   [DATA_W-1:0]            m_wdata_i,
+    input                           m_wlast_i,
+    input                           m_wvalid_i,
     // -- -- B channel          
-    input                                   m_bready_i,
+    input                           m_bready_i,
     // -- -- AR channel         
-    input   [MST_ID_W-1:0]                  m_arid_i,
-    input   [ADDR_W-1:0]                    m_araddr_i,
-    input   [TRANS_DATA_LEN_W-1:0]          m_arlen_i,
-    input                                   m_arvalid_i,
+    input   [MST_ID_W-1:0]          m_arid_i,
+    input   [ADDR_W-1:0]            m_araddr_i,
+    input   [TRANS_DATA_LEN_W-1:0]  m_arlen_i,
+    input                           m_arvalid_i,
     // -- -- R channel          
-    input                                   m_rready_i,
+    input                           m_rready_i,
     // Output declaration           
     // -- -- AW channel         
-    output                                  m_awready_o,
+    output                          m_awready_o,
     // -- -- W channel          
-    output                                  m_wready_o,
+    output                          m_wready_o,
     // -- -- B channel          
-    output  [MST_ID_W-1:0]                  m_bid_o,
-    output  [TRANS_RESP_W-1:0]              m_bresp_o,
-    output                                  m_bvalid_o,
+    output  [MST_ID_W-1:0]          m_bid_o,
+    output  [TRANS_RESP_W-1:0]      m_bresp_o,
+    output                          m_bvalid_o,
     // -- -- AR channel         
-    output                                  m_arready_o,
+    output                          m_arready_o,
     // -- -- R channel          
-    output  [DATA_W-1:0]                    m_rdata_o,
-    output  [TRANS_RESP_W-1:0]              m_rresp_o,
-    output                                  m_rlast_o,
-    output                                  m_rvalid_o,
+    output  [DATA_W-1:0]            m_rdata_o,
+    output  [TRANS_RESP_W-1:0]      m_rresp_o,
+    output                          m_rlast_o,
+    output                          m_rvalid_o,
     // -- SCCB Master Interface
-    output                                  sio_c,
-    inout                                   sio_d
+    output                          sio_c,
+    inout                           sio_d
 );
     // Local parameters declaration
     localparam CONFIG_REG_NUM   = 2; // SLV_DVC_ADDR + PRESCALER 

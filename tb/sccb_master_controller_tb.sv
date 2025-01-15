@@ -175,7 +175,7 @@ module sccb_master_controller_tb;
                 m_w_transfer(.m_wdata({5'h00, 1'b1, 2'd2}), .m_wlast(1'b0));
                 m_w_transfer(.m_wdata({5'h00, 1'b1, 2'd3}), .m_wlast(1'b1));
                 // 2nd
-                m_w_transfer(.m_wdata(8'h43), .m_wlast(1'b1));
+                m_w_transfer(.m_wdata(8'h21), .m_wlast(1'b1));
                 // 3rd
                 m_w_transfer(.m_wdata(8'h11), .m_wlast(1'b1));
                 // 4th
@@ -212,6 +212,66 @@ module sccb_master_controller_tb;
         join_none
     end
 
+    /*          SCCB monitor            */
+    localparam IDLE_ST      = 4'd00;
+    localparam TX_DAT_ST    = 4'd01;
+    localparam TX_ACK_ST    = 4'd02;
+    localparam RX_DAT_ST    = 4'd03;
+    localparam RX_ACK_ST    = 4'd04;
+    logic [3:0] slv_st      = IDLE_ST;
+    logic [7:0] tx_data     = 0;
+    logic       tx_data_vld = 0;
+    logic [2:0] sioc_cl_cnt = 7;
+    logic       stop_dat_w  = 0;
+    logic       stop_dat_r  = 0;
+    logic       stop_en_occur;
+    assign stop_en_occur = stop_dat_w ^ stop_dat_r;
+    always @(posedge sio_c) begin
+        if(~rst_n) begin
+          
+        end
+        else begin
+            tx_data_vld <= 0;
+            case(slv_st)
+                IDLE_ST: begin
+                    slv_st <= TX_DAT_ST;
+                    sioc_cl_cnt <= sioc_cl_cnt - 1;
+                    tx_data[sioc_cl_cnt] <= sio_d;
+                end
+                TX_DAT_ST: begin
+                    if(sioc_cl_cnt == 7) begin // overflow -> received all bits
+                        slv_st <= IDLE_ST;
+                        tx_data_vld <= 1;
+                    end
+                    else begin
+                        sioc_cl_cnt <= sioc_cl_cnt - 1;
+                        tx_data[sioc_cl_cnt] <= sio_d;
+                    end
+                end
+                TX_ACK_ST: begin
+                    slv_st <= IDLE_ST;
+                end
+                RX_DAT_ST: begin
+                end
+                RX_ACK_ST: begin
+                end
+            endcase
+        end
+    end
+    initial begin : STOP_DATA_TRANS_DET
+        // SIO_D is changing state while SIO_C is HIGH 
+        while(1'b1) begin
+            @(posedge sio_d);
+            #0.1;
+            if(sio_c) begin 
+                // Reset the state and buffer in slv
+                slv_st      <= IDLE_ST;
+                sioc_cl_cnt <= 3'd7;
+                tx_data     <= 8'h00;
+            end
+        end
+    end
+    /*          SCCB monitor            */
 
 
    /* DeepCode */

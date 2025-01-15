@@ -153,22 +153,27 @@ module sccb_fsm #(
                         st_d = TX_DATA_ACK_ST;
                         // I/O
                         sio_oe_m_d = 1'b1;  // Float SIO_D
+                        // Internal
+                        phase_cnt_d = phase_cnt_q + 1'b1;
+                        // Set overflow bit to "0" -> 0x7
+                        sio_d_cnt_d[DATA_CNT_W] = 1'b0; 
+                        sio_d_cnt_d[DATA_CNT_W-1:0] = {DATA_CNT_W{1'b1}};
                     end
                     else begin
                         sio_d_intl_d = sio_d_data_map;
+                        sio_d_cnt_d = sio_d_cnt_q - 1'b1;   // 0x7 -> 0x0 -> 0xF (overflow)
                     end
-                    sio_d_cnt_d = sio_d_cnt_q - 1'b1;   // 0x7 -> 0x0 -> 0xF (overflow)
                 end
             end
             TX_DATA_ACK_ST: begin
                 if(tick_en_i & (~sio_c_q)) begin    // Active on LOW level of SIO_C
                     if(~trans_type_q1) begin    // Read transmission
                         st_d = RX_DATA_ST;
-                        sio_d_cnt_d = DATA_W - 2'd2;    // Reset counter 
-                        rx_wr_ptr_d = rx_rd_ptr_q;      // Force deassert write valid to avoid overwriting the current data with dummy data
+                        sio_d_cnt_d = sio_d_cnt_q - 1'b1;
+                        rx_wr_ptr_d = rx_rd_ptr_q;          // Force deassert write valid to avoid overwriting the current data with dummy data
                     end
                     else begin    // Write transmission
-                        if(~|(phase_cnt_q^(phase_amt_q1-1'b1))) begin    // Last phase
+                        if(~|(phase_cnt_q^(phase_amt_q1))) begin    // Last phase
                             st_d = STOP_TRANS_ST;
                             // Setup SCCB stop transmission
                             sio_d_intl_d = 1'b0;
@@ -177,13 +182,11 @@ module sccb_fsm #(
                         else begin                                      // Remain some phases
                             st_d = TX_DATA_ST;
                             // Setup
-                            sio_oe_m_d = 1'b0;      // Control SIO_D
+                            sio_oe_m_d = 1'b0;              // Control SIO_D
                             sio_d_intl_d = sio_d_data_map;  // Map new SIO_D = TX_DAT[7]
-                            sio_d_cnt_d = DATA_W - 2'd2;    // Reset counter
+                            sio_d_cnt_d = sio_d_cnt_q - 1'b1;
                         end
                     end
-                    // Internal
-                    phase_cnt_d = phase_cnt_q + 1'b1;
                 end
             end
             RX_DATA_ST: begin
