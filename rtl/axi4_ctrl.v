@@ -19,21 +19,21 @@ module axi4_ctrl
 #(
     // AXI4 Controller type
     parameter AXI4_CTRL_CONF    = 1,                // AXI4-Configuration-Register  || 0: Disable || 1: Enable
-    parameter AXI4_CTRL_WR_ST   = 0,                // AXI4-Write-Data-Streaming    || 0: Disable || 1: Enable
-    parameter AXI4_CTRL_RD_ST   = 0,                // AXI4-Read-Data-Streaming     || 0: Disable || 1: Enable
+    parameter AXI4_CTRL_WR_ST   = 1,                // AXI4-Write-Data-Streaming    || 0: Disable || 1: Enable
+    parameter AXI4_CTRL_RD_ST   = 1,                // AXI4-Read-Data-Streaming     || 0: Disable || 1: Enable
     // AXI4 (configuration segment) Interface
     parameter CONF_BASE_ADDR    = 32'h2000_0000,    // Memory mapping - BASE
     parameter CONF_OFFSET       = 32'h01,           // Memory mapping - OFFSET ---> Address (byte-access) = (base + offset*n)
-    parameter CONF_REG_NUM      = 32'd13,           // Number of configuration registers
+    parameter CONF_REG_NUM      = 32'd8,            // Number of configuration registers
     // AXI4 (write-data-streaming segment) Interface
     parameter ST_WR_BASE_ADDR   = 32'h2100_0000,    // Memory mapping - BASE
     parameter ST_WR_OFFSET      = 32'h01,           // Memory mapping - OFFSET ---> Address (byte-access) = (base + offset*n)
-    parameter ST_WR_FIFO_NUM    = 32'd01,           // Number of write-data-streaming FIFO
+    parameter ST_WR_FIFO_NUM    = 32'd02,           // Number of write-data-streaming FIFO
     parameter ST_WR_FIFO_DEPTH  = 4,                // Depth of each write-data-streaming FIFO
     // AXI4 (read-data-streaming segment) Interface
     parameter ST_RD_BASE_ADDR   = 32'h2200_0000,    // Memory mapping - BASE
     parameter ST_RD_OFFSET      = 32'h01,           // Memory mapping - OFFSET ---> Address (byte-access) = (base + offset*n)
-    parameter ST_RD_FIFO_NUM    = 32'd01,           // Number of read-data-streaming FIFO
+    parameter ST_RD_FIFO_NUM    = 32'd02,           // Number of read-data-streaming FIFO
     parameter ST_RD_FIFO_DEPTH  = 4,                // Depth of each read-data-streaming FIFO
     // Common
     parameter DATA_W            = 8,
@@ -235,7 +235,7 @@ module axi4_ctrl
         .clk        (clk),
         .rst_n      (rst_n),
         .bwd_data_i (bwd_ar_info),
-        .bwd_valid_i(m_arvalid_i), 
+        .bwd_valid_i(m_arvalid_i),
         .fwd_ready_i(fwd_ar_rdy), 
         .fwd_data_o (fwd_ar_info),
         .bwd_ready_o(m_arready_o), 
@@ -249,7 +249,7 @@ module axi4_ctrl
         .clk        (clk),
         .rst_n      (rst_n),
         .bwd_data_i (bwd_r_info),
-        .bwd_valid_i(fwd_ar_vld), 
+        .bwd_valid_i(bwd_r_vld), 
         .fwd_ready_i(m_rready_i), 
         .fwd_data_o (fwd_r_info),
         .bwd_ready_o(bwd_r_rdy), 

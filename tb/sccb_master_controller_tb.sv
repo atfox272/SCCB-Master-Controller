@@ -8,8 +8,11 @@
 // `define WR_ST_MODE
 // `define RD_ST_MODE 
 // `define CUSTOMIZE_MODE
+
 `define END_TIME        500000
 
+// Slave device physical timing simulation
+`define SLV_DVC_LATENCY 2 // Time unit
 module sccb_master_controller_tb;
 
     // Parameters
@@ -69,6 +72,9 @@ module sccb_master_controller_tb;
     // -- SCCB Master Interface
     logic                                   sio_c;
     wire                                    sio_d;
+    logic                                   sio_oe_m = 0;   // Master SIO_D output enable
+    logic                                   sio_d_slv;
+    assign sio_d = sio_oe_m ? sio_d_slv : 1'bz;
 
     // Instantiate the DUT (Device Under Test)
     sccb_master_controller #(
@@ -160,50 +166,46 @@ module sccb_master_controller_tb;
         fork 
             begin   : AW_chn
                 // 1st: Request for Control signal
-                m_aw_transfer(.m_awid(5'h00), .m_awaddr(32'h2100_0000), .m_awlen(8'd02));
+                m_aw_transfer(.m_awid(5'h00), .m_awaddr(32'h2100_0000), .m_awlen(8'd05));
                 // 2nd: Request for CONFIG  
                 m_aw_transfer(.m_awid(5'h00), .m_awaddr(32'h2000_0000), .m_awlen(8'd00));
                 // 3rd: Request for TX_DATA
                 m_aw_transfer(.m_awid(5'h00), .m_awaddr(32'h2100_0002), .m_awlen(8'd00));
                 // 4th: Request for SUB_ADDR 
-                m_aw_transfer(.m_awid(5'h00), .m_awaddr(32'h2100_0001), .m_awlen(8'd01));
+                m_aw_transfer(.m_awid(5'h00), .m_awaddr(32'h2100_0001), .m_awlen(8'd05));
                 aclk_cl;
                 m_awvalid_i <= 1'b0;
             end
             begin   : W_chn
-                // 1st
+                // 1st                        W/R   PHASE
                 m_w_transfer(.m_wdata({5'h00, 1'b1, 2'd2}), .m_wlast(1'b0));
-                m_w_transfer(.m_wdata({5'h00, 1'b1, 2'd3}), .m_wlast(1'b1));
+                m_w_transfer(.m_wdata({5'h00, 1'b1, 2'd3}), .m_wlast(1'b0));
+                m_w_transfer(.m_wdata({5'h00, 1'b1, 2'd3}), .m_wlast(1'b0));
+                m_w_transfer(.m_wdata({5'h00, 1'b1, 2'd3}), .m_wlast(1'b0));
+                m_w_transfer(.m_wdata({5'h00, 1'b1, 2'd2}), .m_wlast(1'b0));
+                m_w_transfer(.m_wdata({5'h00, 1'b1, 2'd2}), .m_wlast(1'b0));
+                m_w_transfer(.m_wdata({5'h00, 1'b0, 2'd2}), .m_wlast(1'b1));
                 // 2nd
                 m_w_transfer(.m_wdata(8'h21), .m_wlast(1'b1));
                 // 3rd
-                m_w_transfer(.m_wdata(8'h11), .m_wlast(1'b1));
+                m_w_transfer(.m_wdata(8'h11), .m_wlast(1'b0));
+                m_w_transfer(.m_wdata(8'h00), .m_wlast(1'b0));
+                m_w_transfer(.m_wdata(8'hFF), .m_wlast(1'b1));
                 // 4th
                 m_w_transfer(.m_wdata(8'h2A), .m_wlast(1'b0));
-                m_w_transfer(.m_wdata(8'h3F), .m_wlast(1'b1));
+                m_w_transfer(.m_wdata(8'h3A), .m_wlast(1'b0));
+                m_w_transfer(.m_wdata(8'h4A), .m_wlast(1'b0));
+                m_w_transfer(.m_wdata(8'h5A), .m_wlast(1'b0));
+                m_w_transfer(.m_wdata(8'h6A), .m_wlast(1'b0));
+                m_w_transfer(.m_wdata(8'hFA), .m_wlast(1'b1));
                 aclk_cl;
                 m_wvalid_i <= 1'b0;
             end
             begin   : AR_chn
-                // // Wrong request        -   num_trans = 2
-                // m_ar_transfer(.m_arid(5'h00), .m_araddr(32'h4000_0000), .m_arlen(8'h01)); 
-                // // Request for RX[0]    -   num_trans = 4
-                // m_ar_transfer(.m_arid(5'h00), .m_araddr(32'h2200_0000), .m_arlen(8'd03));
-                // // Request for CONFIG   -   num_trans = 5
-                // m_ar_transfer(.m_arid(5'h00), .m_araddr(32'h2000_0000), .m_arlen(8'd04));
-                // // Request for RX[1]    -   num_trans = 1
-                // m_ar_transfer(.m_arid(5'h00), .m_araddr(32'h2200_0001), .m_arlen(8'd00));
-                // // Request for RX[0]    -   num_trans = 1
-                // m_ar_transfer(.m_arid(5'h00), .m_araddr(32'h2200_0000), .m_arlen(8'd00));
-                // aclk_cl;
-                // m_arvalid_i <= 1'b0;
-
-                // repeat(100) aclk_cl;
-                // // Request for TX[0]    - num
-                // m_ar_transfer(.m_arid(5'h00), .m_araddr(32'h2100_0000), .m_arlen(8'h01)); 
-                // m_ar_transfer(.m_arid(5'h00), .m_araddr(32'h2100_0001), .m_arlen(8'h03)); 
-                // aclk_cl;
-                // m_arvalid_i <= 1'b0;
+                // Request for RX_DATA
+                m_ar_transfer(.m_arid(5'h00), .m_araddr(32'h2200_0000), .m_arlen(8'd00));
+                aclk_cl;
+                m_arvalid_i <= 1'b0;
             end
             begin: R_chn
                 // Wrong request
@@ -214,19 +216,18 @@ module sccb_master_controller_tb;
 
     /*          SCCB monitor            */
     localparam IDLE_ST      = 4'd00;
-    localparam TX_DAT_ST    = 4'd01;
-    localparam TX_ACK_ST    = 4'd02;
-    localparam RX_DAT_ST    = 4'd03;
-    localparam RX_ACK_ST    = 4'd04;
+    localparam TX_DAT_ST    = 4'd02;
+    localparam TX_ACK_ST    = 4'd03;
+    localparam RX_DAT_ST    = 4'd04;
+    localparam RX_ACK_ST    = 4'd05;
     logic [3:0] slv_st      = IDLE_ST;
-    logic [7:0] tx_data     = 0;
+    logic [7:0] tx_data     [0:2];  // Data buffer of phase 1-2-3
     logic       tx_data_vld = 0;
+    logic [1:0] phase_cnt   = 0;    // 0 -> 2
     logic [2:0] sioc_cl_cnt = 7;
-    logic       stop_dat_w  = 0;
-    logic       stop_dat_r  = 0;
-    logic       stop_en_occur;
-    assign stop_en_occur = stop_dat_w ^ stop_dat_r;
-    always @(posedge sio_c) begin
+    logic       start_tx_flg= 1;
+    logic       start_tx_slv= 0;
+    always @(negedge sio_c) begin
         if(~rst_n) begin
           
         end
@@ -234,24 +235,48 @@ module sccb_master_controller_tb;
             tx_data_vld <= 0;
             case(slv_st)
                 IDLE_ST: begin
-                    slv_st <= TX_DAT_ST;
-                    sioc_cl_cnt <= sioc_cl_cnt - 1;
-                    tx_data[sioc_cl_cnt] <= sio_d;
+                    if(start_tx_slv) begin
+                        start_tx_slv = 0;
+                    end
+                    else begin
+                        slv_st <= TX_DAT_ST;
+                        sioc_cl_cnt <= sioc_cl_cnt - 1;
+                        tx_data[phase_cnt][sioc_cl_cnt] <= sio_d;
+                    end
                 end
                 TX_DAT_ST: begin
-                    if(sioc_cl_cnt == 7) begin // overflow -> received all bits
-                        slv_st <= IDLE_ST;
-                        tx_data_vld <= 1;
+                    if(sioc_cl_cnt == 7) begin // Received all bits (8bit)
+                        if((phase_cnt == 0) & (tx_data[phase_cnt][0])) begin  // Next phase is a READ phase
+                            #(`SLV_DVC_LATENCY);
+                            slv_st    <= RX_DAT_ST;
+                            sio_oe_m  <= 1'b1;  // Control the bus
+                            sio_d_slv <= tx_data[1][sioc_cl_cnt];   // Return the previous transmission's sub-address 
+                            sioc_cl_cnt <= sioc_cl_cnt - 1;
+                        end
+                        else begin
+                            slv_st <= IDLE_ST;
+                            tx_data_vld <= 1; 
+                        end
+                        phase_cnt   <= phase_cnt + 1'b1;
                     end
                     else begin
                         sioc_cl_cnt <= sioc_cl_cnt - 1;
-                        tx_data[sioc_cl_cnt] <= sio_d;
+                        tx_data[phase_cnt][sioc_cl_cnt] <= sio_d;
                     end
                 end
                 TX_ACK_ST: begin
                     slv_st <= IDLE_ST;
                 end
                 RX_DAT_ST: begin
+                    if(sioc_cl_cnt == 7) begin // overflow -> received all bits
+                        slv_st      <= IDLE_ST;
+                        sio_oe_m    <= 1'b0; // Float the bus
+                        phase_cnt   <= phase_cnt + 1'b1;
+                    end
+                    else begin
+                        sio_d_slv   <= tx_data[phase_cnt][sioc_cl_cnt];   // Return the previous transmission's sub-address 
+                        sioc_cl_cnt <= sioc_cl_cnt - 1;
+                    end
                 end
                 RX_ACK_ST: begin
                 end
@@ -264,10 +289,27 @@ module sccb_master_controller_tb;
             @(posedge sio_d);
             #0.1;
             if(sio_c) begin 
-                // Reset the state and buffer in slv
-                slv_st      <= IDLE_ST;
-                sioc_cl_cnt <= 3'd7;
-                tx_data     <= 8'h00;
+                if(start_tx_flg) begin  // This case is the "Start Data Transmission"
+                    start_tx_flg = 0;
+                    start_tx_slv = 1;   // Flag to Slave FSM 
+                    slv_st      <= IDLE_ST;
+                    sioc_cl_cnt <= 3'd7;
+                    phase_cnt   <= 0;
+                    tx_data[2]  <= 8'h00;   // Reset DATA buffer
+                end
+                else begin
+                    $display("------------ Slave new info ------------");
+                    $display("Number of phases:     %2d", phase_cnt);
+                    $display("SLAVE DEVICE ADDRESS: %2h", tx_data[0]);
+                    $display("SUB-ADDRESS:          %2h", tx_data[1]);
+                    $display("DATA:                 %2h", tx_data[2]);
+                    // Reset the state and buffer in slv
+                    start_tx_flg = 1;
+                    slv_st      <= IDLE_ST;
+                    sioc_cl_cnt <= 3'd7;
+                    phase_cnt   <= 0;
+                    tx_data[2]  <= 8'h00;   // Reset DATA buffer
+                end
             end
         end
     end
