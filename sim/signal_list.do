@@ -1,43 +1,30 @@
 onerror resume
 wave tags  F0
 wave update off
-wave zoom range 3262530 3395923
+wave zoom range 0 87492
 wave group {AW channel} -backgroundcolor #004466
-wave add -group {AW channel} sccb_master_controller_tb.m_awid_i -tag F0 -radix hexadecimal
+wave add -group {AW channel} sccb_master_controller_tb.m_awid_i -tag F0 -radix hexadecimal -select
 wave add -group {AW channel} sccb_master_controller_tb.m_awaddr_i -tag F0 -radix hexadecimal
 wave add -group {AW channel} sccb_master_controller_tb.m_awlen_i -tag F0 -radix hexadecimal
-wave add -group {AW channel} sccb_master_controller_tb.m_awvalid_i -tag F0 -radix hexadecimal
-wave add -group {AW channel} sccb_master_controller_tb.m_awready_o -tag F0 -radix hexadecimal
-wave add -group {AW channel} sccb_master_controller_tb.m_awid_i -tag F0 -radix hexadecimal
-wave add -group {AW channel} sccb_master_controller_tb.m_awaddr_i -tag F0 -radix hexadecimal
-wave add -group {AW channel} sccb_master_controller_tb.m_awlen_i -tag F0 -radix hexadecimal
-wave add -group {AW channel} sccb_master_controller_tb.m_awvalid_i -tag F0 -radix hexadecimal
-wave add -group {AW channel} sccb_master_controller_tb.m_awready_o -tag F0 -radix hexadecimal
+wave add -group {AW channel} sccb_master_controller_tb.m_awvalid_i -tag F0 -radix hexadecimal -foregroundcolor Cyan
+wave add -group {AW channel} sccb_master_controller_tb.m_awready_o -tag F0 -radix hexadecimal -foregroundcolor Cyan
 wave insertion [expr [wave index insertpoint] + 1]
 wave group {W channel} -backgroundcolor #006666
 wave add -group {W channel} sccb_master_controller_tb.m_wdata_i -tag F0 -radix hexadecimal
 wave add -group {W channel} sccb_master_controller_tb.m_wlast_i -tag F0 -radix hexadecimal
-wave add -group {W channel} sccb_master_controller_tb.m_wvalid_i -tag F0 -radix hexadecimal
-wave add -group {W channel} sccb_master_controller_tb.m_wready_o -tag F0 -radix hexadecimal
-wave add -group {W channel} sccb_master_controller_tb.m_wdata_i -tag F0 -radix hexadecimal
-wave add -group {W channel} sccb_master_controller_tb.m_wlast_i -tag F0 -radix hexadecimal
-wave add -group {W channel} sccb_master_controller_tb.m_wvalid_i -tag F0 -radix hexadecimal
-wave add -group {W channel} sccb_master_controller_tb.m_wready_o -tag F0 -radix hexadecimal
+wave add -group {W channel} sccb_master_controller_tb.m_wvalid_i -tag F0 -radix hexadecimal -foregroundcolor Cyan
+wave add -group {W channel} sccb_master_controller_tb.m_wready_o -tag F0 -radix hexadecimal -foregroundcolor Cyan
 wave insertion [expr [wave index insertpoint] + 1]
 wave group {B channel} -backgroundcolor #226600
 wave add -group {B channel} sccb_master_controller_tb.m_bid_o -tag F0 -radix hexadecimal
 wave add -group {B channel} sccb_master_controller_tb.m_bresp_o -tag F0 -radix hexadecimal
-wave add -group {B channel} sccb_master_controller_tb.m_bvalid_o -tag F0 -radix hexadecimal
-wave add -group {B channel} sccb_master_controller_tb.m_bready_i -tag F0 -radix hexadecimal
-wave add -group {B channel} sccb_master_controller_tb.m_bid_o -tag F0 -radix hexadecimal
-wave add -group {B channel} sccb_master_controller_tb.m_bresp_o -tag F0 -radix hexadecimal
-wave add -group {B channel} sccb_master_controller_tb.m_bvalid_o -tag F0 -radix hexadecimal
-wave add -group {B channel} sccb_master_controller_tb.m_bready_i -tag F0 -radix hexadecimal
+wave add -group {B channel} sccb_master_controller_tb.m_bvalid_o -tag F0 -radix hexadecimal -foregroundcolor Cyan
+wave add -group {B channel} sccb_master_controller_tb.m_bready_i -tag F0 -radix hexadecimal -foregroundcolor Cyan
 wave insertion [expr [wave index insertpoint] + 1]
 wave group {AR channel} -backgroundcolor #004466
 wave add -group {AR channel} sccb_master_controller_tb.m_arid_i -tag F0 -radix hexadecimal
 wave add -group {AR channel} sccb_master_controller_tb.m_araddr_i -tag F0 -radix hexadecimal
-wave add -group {AR channel} sccb_master_controller_tb.m_arlen_i -tag F0 -radix hexadecimal -select
+wave add -group {AR channel} sccb_master_controller_tb.m_arlen_i -tag F0 -radix hexadecimal
 wave add -group {AR channel} sccb_master_controller_tb.m_arvalid_i -tag F0 -radix hexadecimal
 wave add -group {AR channel} sccb_master_controller_tb.m_arready_o -tag F0 -radix hexadecimal
 wave insertion [expr [wave index insertpoint] + 1]
@@ -74,7 +61,5 @@ wave add sccb_master_controller_tb.sccb_master_controller.sccb_fsm.sio_d_cnt_q -
 wave add sccb_master_controller_tb.sccb_master_controller.sccb_fsm.sio_d_data_map -tag F0 -radix hexadecimal
 wave add sccb_master_controller_tb.sccb_master_controller.sccb_fsm.phase_cnt_q -tag F0 -radix hexadecimal
 wave add {sccb_master_controller_tb.sccb_master_controller.axi4_ctrl.AXI4_WR_ST.genblk1[0].wr_st_fifo.clk} -tag F0 -radix hexadecimal
-wave group {W channel} -collapse
-wave group {AW channel} -collapse
 wave update on
 wave top 0

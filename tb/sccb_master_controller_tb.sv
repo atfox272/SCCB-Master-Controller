@@ -181,10 +181,11 @@ module sccb_master_controller_tb;
                 m_w_transfer(.m_wdata({5'h00, 1'b1, 2'd2}), .m_wlast(1'b0));
                 m_w_transfer(.m_wdata({5'h00, 1'b1, 2'd3}), .m_wlast(1'b0));
                 m_w_transfer(.m_wdata({5'h00, 1'b1, 2'd3}), .m_wlast(1'b0));
-                m_w_transfer(.m_wdata({5'h00, 1'b1, 2'd3}), .m_wlast(1'b0));
+                m_w_transfer(.m_wdata({5'h00, 1'b1, 2'd3}), .m_wlast(1'b0));    // 0x42 - 0x5A - 0xFF
+                m_w_transfer(.m_wdata({5'h00, 1'b0, 2'd2}), .m_wlast(1'b0));    // Read
                 m_w_transfer(.m_wdata({5'h00, 1'b1, 2'd2}), .m_wlast(1'b0));
                 m_w_transfer(.m_wdata({5'h00, 1'b1, 2'd2}), .m_wlast(1'b0));
-                m_w_transfer(.m_wdata({5'h00, 1'b0, 2'd2}), .m_wlast(1'b1));
+                m_w_transfer(.m_wdata({5'h00, 1'b0, 2'd2}), .m_wlast(1'b1));    // Read
                 // 2nd
                 m_w_transfer(.m_wdata(8'h21), .m_wlast(1'b1));
                 // 3rd
@@ -203,7 +204,7 @@ module sccb_master_controller_tb;
             end
             begin   : AR_chn
                 // Request for RX_DATA
-                m_ar_transfer(.m_arid(5'h00), .m_araddr(32'h2200_0000), .m_arlen(8'd00));
+                m_ar_transfer(.m_arid(5'h00), .m_araddr(32'h2200_0000), .m_arlen(8'd01));
                 aclk_cl;
                 m_arvalid_i <= 1'b0;
             end
@@ -299,10 +300,19 @@ module sccb_master_controller_tb;
                 end
                 else begin
                     $display("------------ Slave new info ------------");
-                    $display("Number of phases:     %2d", phase_cnt);
-                    $display("SLAVE DEVICE ADDRESS: %2h", tx_data[0]);
-                    $display("SUB-ADDRESS:          %2h", tx_data[1]);
-                    $display("DATA:                 %2h", tx_data[2]);
+                    if(~tx_data[0][0]) begin// Write transmission
+                        $display("Completed 1 write transmission");
+                        $display("Number of phases:     %2d", phase_cnt);
+                        $display("SLAVE DEVICE ADDRESS: %2h", tx_data[0]);
+                        $display("SUB-ADDRESS:          %2h", tx_data[1]);
+                        $display("WRITE DATA:           %2h", tx_data[2]);
+                    end
+                    else begin              // Read transmission
+                        $display("Completed 1 read transmission");
+                        $display("Number of phases:     %2d", phase_cnt);
+                        $display("SLAVE DEVICE ADDRESS: %2h", tx_data[0]);
+                        $display("READ DATA:            %2h", tx_data[1]);
+                    end
                     // Reset the state and buffer in slv
                     start_tx_flg = 1;
                     slv_st      <= IDLE_ST;
@@ -315,6 +325,68 @@ module sccb_master_controller_tb;
     end
     /*          SCCB monitor            */
 
+
+    /*          AXI4 monitor            */
+    initial begin   : AXI4_MONITOR
+        #(`RST_DLY_START + `RST_DUR + 1);
+        fork 
+            // begin   : AW_chn
+            //     while(1'b1) begin
+            //         wait(m_awready_o & m_awvalid_i); #0.1;  // AW hanshaking
+            //         $display("\n---------- AW channel ----------");
+            //         $display("AWID:     0x%8h", m_awid_i);
+            //         $display("AWADDR:   0x%8h", m_awaddr_i);
+            //         $display("AWLEN:    0x%8h", m_awlen_i);
+            //         $display("-------------------------------");
+            //         aclk_cl;
+            //     end
+            // end
+            // begin   : W_chn
+            //     while(1'b1) begin
+            //         wait(m_wready_o & m_wvalid_i); #0.1;  // W hanshaking
+            //         $display("\n---------- W channel ----------");
+            //         $display("WDATA:    0x%8h", m_wdata_i);
+            //         $display("WLAST:    0x%8h", m_wlast_i);
+            //         $display("-------------------------------");
+            //         aclk_cl;
+            //     end
+            // end
+            begin   : B_chn
+                while(1'b1) begin
+                    wait(m_bready_i & m_bvalid_o); #0.1;  // B hanshaking
+                    $display("\n---------- B channel ----------");
+                    $display("BID:      0x%8h", m_bid_o);
+                    $display("BRESP:    0x%8h", m_bresp_o);
+                    $display("-------------------------------");
+                    aclk_cl;
+                end
+            end
+            // begin   : AR_chn
+            //     while(1'b1) begin
+            //         wait(m_arready_o & m_arvalid_i); #0.1;  // AR hanshaking
+            //         $display("\n---------- AR channel ----------");
+            //         $display("ARID:     0x%8h", m_arid_i);
+            //         $display("ARADDR:   0x%8h", m_araddr_i);
+            //         $display("ARLEN:    0x%8h", m_arlen_i);
+            //         $display("-------------------------------");
+            //         aclk_cl;
+            //     end
+
+            // end
+            begin   : R_chn
+                while(1'b1) begin
+                    wait(m_rready_i & m_rvalid_o); #0.1;  // R hanshaking
+                    $display("\n---------- R channel ----------");
+                    $display("RDATA:    0x%8h", m_rdata_o);
+                    $display("RRESP:    0x%8h", m_rresp_o);
+                    $display("RLAST:    0x%8h", m_rlast_o);
+                    $display("-------------------------------");
+                    aclk_cl;
+                end
+            end
+        join_none
+    end
+    /*          AXI4 monitor            */
 
    /* DeepCode */
     task automatic m_aw_transfer(

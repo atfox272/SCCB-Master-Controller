@@ -62,7 +62,7 @@ module sccb_master_controller #(
 );
     // Local parameters declaration
     localparam CONFIG_REG_NUM   = 2; // SLV_DVC_ADDR + PRESCALER 
-    localparam SCCB_TX_FIFO_NUM = 3; // SUB_ADDR + TX_DATA + CONTROL_SIGNAL
+    localparam SCCB_TX_FIFO_NUM = 3; // CONTROL_SIGNAL + SUB_ADDR + TX_DATA
     localparam SCCB_RX_FIFO_NUM = 1; // RX_DATA
 
     // Internal variable
