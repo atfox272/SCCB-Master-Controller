@@ -1,4 +1,4 @@
-module sccb_fsm #(
+module smc_state_machine #(
     parameter DATA_W = 8
 ) (
     // Input declaration

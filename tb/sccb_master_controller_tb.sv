@@ -16,17 +16,15 @@
 module sccb_master_controller_tb;
 
     // Parameters
-    parameter IP_CONF_BASE_ADDR     = 32'h2000_0000;    // Configuration registers region - BASE
-    parameter IP_TX_BASE_ADDR       = 32'h2100_0000;    // SCCB TX FIFO region - BASE
-    parameter IP_RX_BASE_ADDR       = 32'h2200_0000;    // SCCB RX FIFO region - BASE
+    parameter ATX_BASE_ADDR         = 32'h2000_0000;    // Configuration registers region - BASE
     parameter SCCB_TX_FIFO_DEPTH    = 8;                // SCCB TX FIFO depth (element's width = 8bit)
     parameter SCCB_RX_FIFO_DEPTH    = 8;                // SCCB RX FIFO depth (element's width = 8bit)
-    parameter DATA_W                = 8;
-    parameter ADDR_W                = 32;
-    parameter MST_ID_W              = 5;
-    parameter TRANS_DATA_LEN_W      = 8;
-    parameter TRANS_DATA_SIZE_W     = 3;
-    parameter TRANS_RESP_W          = 2;
+    parameter ATX_DATA_W            = 8;
+    parameter ATX_ADDR_W            = 32;
+    parameter ATX_ID_W              = 5;
+    parameter ATX_LEN_W             = 8;
+    parameter ATX_SIZE_W            = 3;
+    parameter ATX_RESP_W            = 2;
     parameter INTERNAL_CLK_FREQ     = 1_000_000;
     parameter MAX_SCCB_FREQ         = 100_000;
     
@@ -36,39 +34,42 @@ module sccb_master_controller_tb;
     logic                                   rst_n;
     // -- AXI4 Interface            
     // -- -- AW channel         
-    logic   [MST_ID_W-1:0]                  m_awid_i;
-    logic   [ADDR_W-1:0]                    m_awaddr_i;
-    logic   [TRANS_DATA_LEN_W-1:0]          m_awlen_i;
-    logic                                   m_awvalid_i;
+    logic   [ATX_ID_W-1:0]                  s_awid_i;
+    logic   [ATX_ADDR_W-1:0]                s_awaddr_i;
+    logic   [1:0]                           s_awburst_i;
+    logic   [ATX_LEN_W-1:0]                 s_awlen_i;
+    logic                                   s_awvalid_i;
     // -- -- W channel          
-    logic   [DATA_W-1:0]                    m_wdata_i;
-    logic                                   m_wlast_i;
-    logic                                   m_wvalid_i;
+    logic   [ATX_DATA_W-1:0]                s_wdata_i;
+    logic                                   s_wlast_i;
+    logic                                   s_wvalid_i;
     // -- -- B channel          
-    logic                                   m_bready_i;
+    logic                                   s_bready_i;
     // -- -- AR channel         
-    logic   [MST_ID_W-1:0]                  m_arid_i;
-    logic   [ADDR_W-1:0]                    m_araddr_i;
-    logic   [TRANS_DATA_LEN_W-1:0]          m_arlen_i;
-    logic                                   m_arvalid_i;
+    logic   [ATX_ID_W-1:0]                  s_arid_i;
+    logic   [ATX_ADDR_W-1:0]                s_araddr_i;
+    logic   [1:0]                           s_arburst_i;
+    logic   [ATX_LEN_W-1:0]                 s_arlen_i;
+    logic                                   s_arvalid_i;
     // -- -- R channel          
-    logic                                   m_rready_i;
+    logic                                   s_rready_i;
     // logic  declaration           
     // -- -- AW channel         
-    logic                                   m_awready_o;
+    logic                                   s_awready_o;
     // -- -- W channel          
-    logic                                   m_wready_o;
+    logic                                   s_wready_o;
     // -- -- B channel          
-    logic   [MST_ID_W-1:0]                  m_bid_o;
-    logic   [TRANS_RESP_W-1:0]              m_bresp_o;
-    logic                                   m_bvalid_o;
+    logic   [ATX_ID_W-1:0]                  s_bid_o;
+    logic   [ATX_RESP_W-1:0]                s_bresp_o;
+    logic                                   s_bvalid_o;
     // -- -- AR channel         
-    logic                                   m_arready_o;
+    logic                                   s_arready_o;
     // -- -- R channel          
-    logic   [DATA_W-1:0]                    m_rdata_o;
-    logic   [TRANS_RESP_W-1:0]              m_rresp_o;
-    logic                                   m_rlast_o;
-    logic                                   m_rvalid_o;
+    logic   [ATX_ID_W-1:0]                  s_rid_o;
+    logic   [ATX_DATA_W-1:0]                s_rdata_o;
+    logic   [ATX_RESP_W-1:0]                s_rresp_o;
+    logic                                   s_rlast_o;
+    logic                                   s_rvalid_o;
     // -- SCCB Master Interface
     logic                                   sio_c;
     wire                                    sio_d;
@@ -78,75 +79,47 @@ module sccb_master_controller_tb;
 
     // Instantiate the DUT (Device Under Test)
     sccb_master_controller #(
-        .IP_CONF_BASE_ADDR(IP_CONF_BASE_ADDR),
-        .IP_TX_BASE_ADDR(IP_TX_BASE_ADDR),
-        .IP_RX_BASE_ADDR(IP_RX_BASE_ADDR),
+        .ATX_BASE_ADDR(ATX_BASE_ADDR),
         .SCCB_TX_FIFO_DEPTH(SCCB_TX_FIFO_DEPTH),
         .SCCB_RX_FIFO_DEPTH(SCCB_RX_FIFO_DEPTH),
-        .DATA_W(DATA_W),
-        .ADDR_W(ADDR_W),
-        .MST_ID_W(MST_ID_W),
-        .TRANS_DATA_LEN_W(TRANS_DATA_LEN_W),
-        .TRANS_DATA_SIZE_W(TRANS_DATA_SIZE_W),
-        .TRANS_RESP_W(TRANS_RESP_W),
+        .ATX_DATA_W(ATX_DATA_W),
+        .ATX_ADDR_W(ATX_ADDR_W),
+        .ATX_ID_W(ATX_ID_W),
+        .ATX_LEN_W(ATX_LEN_W),
+        .ATX_SIZE_W(ATX_SIZE_W),
+        .ATX_RESP_W(ATX_RESP_W),
         .INTERNAL_CLK_FREQ(INTERNAL_CLK_FREQ),
         .MAX_SCCB_FREQ(MAX_SCCB_FREQ)
     ) sccb_master_controller (
-        .clk        (clk),
-        .rst_n      (rst_n),
-        .m_awid_i   (m_awid_i),
-        .m_awaddr_i (m_awaddr_i),
-        .m_awlen_i  (m_awlen_i),
-        .m_awvalid_i(m_awvalid_i),
-        .m_wdata_i  (m_wdata_i),
-        .m_wlast_i  (m_wlast_i),
-        .m_wvalid_i (m_wvalid_i),
-        .m_bready_i (m_bready_i),
-        .m_arid_i   (m_arid_i),
-        .m_araddr_i (m_araddr_i),
-        .m_arlen_i  (m_arlen_i),
-        .m_arvalid_i(m_arvalid_i),
-        .m_rready_i (m_rready_i),
-        .m_awready_o(m_awready_o),
-        .m_wready_o (m_wready_o),
-        .m_bid_o    (m_bid_o),
-        .m_bresp_o  (m_bresp_o),
-        .m_bvalid_o (m_bvalid_o),
-        .m_arready_o(m_arready_o),
-        .m_rdata_o  (m_rdata_o),
-        .m_rresp_o  (m_rresp_o),
-        .m_rlast_o  (m_rlast_o),
-        .m_rvalid_o (m_rvalid_o),
-        .sio_c      (sio_c),
-        .sio_d      (sio_d)
+        .*
     );
 
     initial begin
         clk             <= 0;
         rst_n           <= 1;
 
-        m_awid_i        <= 0;
-        m_awaddr_i      <= 0;
-        m_awvalid_i     <= 0;
-        m_awlen_i       <= 0;
+        s_awid_i        <= 0;
+        s_awaddr_i      <= 0;
+        s_awvalid_i     <= 0;
+        s_awlen_i       <= 0;
         
-        m_wdata_i       <= 0;
-        m_wlast_i       <= 0;
-        m_wvalid_i      <= 0;
+        s_wdata_i       <= 0;
+        s_wlast_i       <= 0;
+        s_wvalid_i      <= 0;
         
-        m_bready_i      <= 1'b1;
+        s_bready_i      <= 1'b1;
         
-        m_awid_i       <= 0;
-        m_awaddr_i     <= 0;
-        m_awvalid_i    <= 0;
+        s_awid_i       <= 0;
+        s_awaddr_i     <= 0;
+        s_awvalid_i    <= 0;
         
-        m_bready_i     <= 1'b1;
+        s_bready_i     <= 1'b1;
         
-        m_arid_i       <= 0;
-        m_araddr_i     <= 0;
-        m_arvalid_i    <= 0;
+        s_arid_i       <= 0;
+        s_araddr_i     <= 0;
+        s_arvalid_i    <= 0;
 
-        m_rready_i     <= 1'b1;
+        s_rready_i     <= 1'b1;
 
         #(`RST_DLY_START)   rst_n <= 0;
         #(`RST_DUR)         rst_n <= 1;
@@ -166,47 +139,47 @@ module sccb_master_controller_tb;
         fork 
             begin   : AW_chn
                 // 1st: Request for Control signal
-                m_aw_transfer(.m_awid(5'h00), .m_awaddr(32'h2100_0000), .m_awlen(8'd05));
+                s_aw_transfer(.s_awid(5'h00), .s_awaddr(32'h2000_0010), .s_awburst(2'b00), .s_awlen(8'd05));
                 // 2nd: Request for CONFIG  
-                m_aw_transfer(.m_awid(5'h00), .m_awaddr(32'h2000_0000), .m_awlen(8'd00));
+                s_aw_transfer(.s_awid(5'h00), .s_awaddr(32'h2000_0000), .s_awburst(2'b00), .s_awlen(8'd00));
                 // 3rd: Request for TX_DATA
-                m_aw_transfer(.m_awid(5'h00), .m_awaddr(32'h2100_0002), .m_awlen(8'd00));
+                s_aw_transfer(.s_awid(5'h00), .s_awaddr(32'h2000_0012), .s_awburst(2'b00), .s_awlen(8'd00));
                 // 4th: Request for SUB_ADDR 
-                m_aw_transfer(.m_awid(5'h00), .m_awaddr(32'h2100_0001), .m_awlen(8'd05));
+                s_aw_transfer(.s_awid(5'h00), .s_awaddr(32'h2000_0011), .s_awburst(2'b00), .s_awlen(8'd05));
                 aclk_cl;
-                m_awvalid_i <= 1'b0;
+                s_awvalid_i <= 1'b0;
             end
             begin   : W_chn
                 // 1st                        W/R   PHASE
-                m_w_transfer(.m_wdata({5'h00, 1'b1, 2'd2}), .m_wlast(1'b0));
-                m_w_transfer(.m_wdata({5'h00, 1'b1, 2'd3}), .m_wlast(1'b0));
-                m_w_transfer(.m_wdata({5'h00, 1'b1, 2'd3}), .m_wlast(1'b0));
-                m_w_transfer(.m_wdata({5'h00, 1'b1, 2'd3}), .m_wlast(1'b0));    // 0x42 - 0x5A - 0xFF
-                m_w_transfer(.m_wdata({5'h00, 1'b0, 2'd2}), .m_wlast(1'b0));    // Read
-                m_w_transfer(.m_wdata({5'h00, 1'b1, 2'd2}), .m_wlast(1'b0));
-                m_w_transfer(.m_wdata({5'h00, 1'b1, 2'd2}), .m_wlast(1'b0));
-                m_w_transfer(.m_wdata({5'h00, 1'b0, 2'd2}), .m_wlast(1'b1));    // Read
+                s_w_transfer(.s_wdata({5'h00, 1'b1, 2'd2}), .s_wlast(1'b0));
+                s_w_transfer(.s_wdata({5'h00, 1'b1, 2'd3}), .s_wlast(1'b0));
+                s_w_transfer(.s_wdata({5'h00, 1'b1, 2'd3}), .s_wlast(1'b0));
+                s_w_transfer(.s_wdata({5'h00, 1'b1, 2'd3}), .s_wlast(1'b0));    // 0x42 - 0x5A - 0xFF
+                s_w_transfer(.s_wdata({5'h00, 1'b0, 2'd2}), .s_wlast(1'b0));    // Read
+                s_w_transfer(.s_wdata({5'h00, 1'b1, 2'd2}), .s_wlast(1'b0));
+                s_w_transfer(.s_wdata({5'h00, 1'b1, 2'd2}), .s_wlast(1'b0));
+                s_w_transfer(.s_wdata({5'h00, 1'b0, 2'd2}), .s_wlast(1'b1));    // Read
                 // 2nd
-                m_w_transfer(.m_wdata(8'h21), .m_wlast(1'b1));
+                s_w_transfer(.s_wdata(8'h21), .s_wlast(1'b1));
                 // 3rd
-                m_w_transfer(.m_wdata(8'h11), .m_wlast(1'b0));
-                m_w_transfer(.m_wdata(8'h00), .m_wlast(1'b0));
-                m_w_transfer(.m_wdata(8'hFF), .m_wlast(1'b1));
+                s_w_transfer(.s_wdata(8'h11), .s_wlast(1'b0));
+                s_w_transfer(.s_wdata(8'h00), .s_wlast(1'b0));
+                s_w_transfer(.s_wdata(8'hFF), .s_wlast(1'b1));
                 // 4th
-                m_w_transfer(.m_wdata(8'h2A), .m_wlast(1'b0));
-                m_w_transfer(.m_wdata(8'h3A), .m_wlast(1'b0));
-                m_w_transfer(.m_wdata(8'h4A), .m_wlast(1'b0));
-                m_w_transfer(.m_wdata(8'h5A), .m_wlast(1'b0));
-                m_w_transfer(.m_wdata(8'h6A), .m_wlast(1'b0));
-                m_w_transfer(.m_wdata(8'hFA), .m_wlast(1'b1));
+                s_w_transfer(.s_wdata(8'h2A), .s_wlast(1'b0));
+                s_w_transfer(.s_wdata(8'h3A), .s_wlast(1'b0));
+                s_w_transfer(.s_wdata(8'h4A), .s_wlast(1'b0));
+                s_w_transfer(.s_wdata(8'h5A), .s_wlast(1'b0));
+                s_w_transfer(.s_wdata(8'h6A), .s_wlast(1'b0));
+                s_w_transfer(.s_wdata(8'hFA), .s_wlast(1'b1));
                 aclk_cl;
-                m_wvalid_i <= 1'b0;
+                s_wvalid_i <= 1'b0;
             end
             begin   : AR_chn
                 // Request for RX_DATA
-                m_ar_transfer(.m_arid(5'h00), .m_araddr(32'h2200_0000), .m_arlen(8'd01));
+                s_ar_transfer(.s_arid(5'h00), .s_araddr(32'h2000_0020), .s_arburst(2'b00), .s_arlen(8'd01));
                 aclk_cl;
-                m_arvalid_i <= 1'b0;
+                s_arvalid_i <= 1'b0;
             end
             begin: R_chn
                 // Wrong request
@@ -332,42 +305,42 @@ module sccb_master_controller_tb;
         fork 
             // begin   : AW_chn
             //     while(1'b1) begin
-            //         wait(m_awready_o & m_awvalid_i); #0.1;  // AW hanshaking
+            //         wait(s_awready_o & s_awvalid_i); #0.1;  // AW hanshaking
             //         $display("\n---------- AW channel ----------");
-            //         $display("AWID:     0x%8h", m_awid_i);
-            //         $display("AWADDR:   0x%8h", m_awaddr_i);
-            //         $display("AWLEN:    0x%8h", m_awlen_i);
+            //         $display("AWID:     0x%8h", s_awid_i);
+            //         $display("AWADDR:   0x%8h", s_awaddr_i);
+            //         $display("AWLEN:    0x%8h", s_awlen_i);
             //         $display("-------------------------------");
             //         aclk_cl;
             //     end
             // end
             // begin   : W_chn
             //     while(1'b1) begin
-            //         wait(m_wready_o & m_wvalid_i); #0.1;  // W hanshaking
+            //         wait(s_wready_o & s_wvalid_i); #0.1;  // W hanshaking
             //         $display("\n---------- W channel ----------");
-            //         $display("WDATA:    0x%8h", m_wdata_i);
-            //         $display("WLAST:    0x%8h", m_wlast_i);
+            //         $display("WDATA:    0x%8h", s_wdata_i);
+            //         $display("WLAST:    0x%8h", s_wlast_i);
             //         $display("-------------------------------");
             //         aclk_cl;
             //     end
             // end
             begin   : B_chn
                 while(1'b1) begin
-                    wait(m_bready_i & m_bvalid_o); #0.1;  // B hanshaking
+                    wait(s_bready_i & s_bvalid_o); #0.1;  // B hanshaking
                     $display("\n---------- B channel ----------");
-                    $display("BID:      0x%8h", m_bid_o);
-                    $display("BRESP:    0x%8h", m_bresp_o);
+                    $display("BID:      0x%8h", s_bid_o);
+                    $display("BRESP:    0x%8h", s_bresp_o);
                     $display("-------------------------------");
                     aclk_cl;
                 end
             end
             // begin   : AR_chn
             //     while(1'b1) begin
-            //         wait(m_arready_o & m_arvalid_i); #0.1;  // AR hanshaking
+            //         wait(s_arready_o & s_arvalid_i); #0.1;  // AR hanshaking
             //         $display("\n---------- AR channel ----------");
-            //         $display("ARID:     0x%8h", m_arid_i);
-            //         $display("ARADDR:   0x%8h", m_araddr_i);
-            //         $display("ARLEN:    0x%8h", m_arlen_i);
+            //         $display("ARID:     0x%8h", s_arid_i);
+            //         $display("ARADDR:   0x%8h", s_araddr_i);
+            //         $display("ARLEN:    0x%8h", s_arlen_i);
             //         $display("-------------------------------");
             //         aclk_cl;
             //     end
@@ -375,11 +348,11 @@ module sccb_master_controller_tb;
             // end
             begin   : R_chn
                 while(1'b1) begin
-                    wait(m_rready_i & m_rvalid_o); #0.1;  // R hanshaking
+                    wait(s_rready_i & s_rvalid_o); #0.1;  // R hanshaking
                     $display("\n---------- R channel ----------");
-                    $display("RDATA:    0x%8h", m_rdata_o);
-                    $display("RRESP:    0x%8h", m_rresp_o);
-                    $display("RLAST:    0x%8h", m_rlast_o);
+                    $display("RDATA:    0x%8h", s_rdata_o);
+                    $display("RRESP:    0x%8h", s_rresp_o);
+                    $display("RLAST:    0x%8h", s_rlast_o);
                     $display("-------------------------------");
                     aclk_cl;
                 end
@@ -389,44 +362,48 @@ module sccb_master_controller_tb;
     /*          AXI4 monitor            */
 
    /* DeepCode */
-    task automatic m_aw_transfer(
-        input [MST_ID_W-1:0]            m_awid,
-        input [ADDR_W-1:0]              m_awaddr,
-        input [TRANS_DATA_LEN_W-1:0]    m_awlen
+    task automatic s_aw_transfer(
+        input [ATX_ID_W-1:0]            s_awid,
+        input [ATX_ADDR_W-1:0]          s_awaddr,
+        input [1:0]                     s_awburst, 
+        input [ATX_LEN_W-1:0]           s_awlen
     );
         aclk_cl;
-        m_awid_i            <= m_awid;
-        m_awaddr_i          <= m_awaddr;
-        m_awlen_i           <= m_awlen;
-        m_awvalid_i         <= 1'b1;
+        s_awid_i            <= s_awid;
+        s_awaddr_i          <= s_awaddr;
+        s_awburst_i         <= s_awburst;
+        s_awlen_i           <= s_awlen;
+        s_awvalid_i         <= 1'b1;
         // Handshake occur
-        wait(m_awready_o == 1'b1); #0.1;
+        wait(s_awready_o == 1'b1); #0.1;
     endtask
 
-    task automatic m_w_transfer (
-        input [DATA_W-1:0]  m_wdata,
-        input               m_wlast
+    task automatic s_w_transfer (
+        input [ATX_DATA_W-1:0]  s_wdata,
+        input               s_wlast
     );
         aclk_cl;
-        m_wdata_i           <= m_wdata;
-        m_wvalid_i          <= 1'b1;
-        m_wlast_i           <= m_wlast;
+        s_wdata_i           <= s_wdata;
+        s_wvalid_i          <= 1'b1;
+        s_wlast_i           <= s_wlast;
         // Handshake occur
-        wait(m_wready_o == 1'b1); #0.1;
+        wait(s_wready_o == 1'b1); #0.1;
     endtask
 
-    task automatic m_ar_transfer(
-        input [MST_ID_W-1:0]            m_arid,
-        input [ADDR_W-1:0]              m_araddr,
-        input [TRANS_DATA_LEN_W-1:0]    m_arlen
+    task automatic s_ar_transfer(
+        input [ATX_ID_W-1:0]            s_arid,
+        input [ATX_ADDR_W-1:0]          s_araddr,
+        input [1:0]                     s_arburst, 
+        input [ATX_LEN_W-1:0]           s_arlen
     );
         aclk_cl;
-        m_arid_i            <= m_arid;
-        m_araddr_i          <= m_araddr;
-        m_arlen_i           <= m_arlen;
-        m_arvalid_i         <= 1'b1;
+        s_arid_i            <= s_arid;
+        s_araddr_i          <= s_araddr;
+        s_arburst_i         <= s_arburst;
+        s_arlen_i           <= s_arlen;
+        s_arvalid_i         <= 1'b1;
         // Handshake occur
-        wait(m_arready_o == 1'b1); #0.1;
+        wait(s_arready_o == 1'b1); #0.1;
     endtask
 
     task automatic aclk_cl;

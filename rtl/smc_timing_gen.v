@@ -3,7 +3,7 @@
 The minimum of SIO_C cycle is 10us -> maximum frequency is 100kHz -> maximum toggle frequency is 200kHz
 
 */
-module sccb_timing_gen #(
+module smc_timing_gen #(
     parameter INTERNAL_CLK_FREQ = 125_000_000,
     parameter MAX_SCCB_FREQ     = 100_000,
     // Configuarion Bus 
